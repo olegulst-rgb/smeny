@@ -350,17 +350,15 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            TimelineView(.periodic(from: .now, by: 30)) { timeline in
-                List {
-                    TodaySection(now: timeline.date, anchor: anchor)
-                    CalendarSection(now: timeline.date, anchor: anchor)
-                    UpcomingSection(now: timeline.date, anchor: anchor)
-                    Section(footer: Text("график 2–2–4 · цикл 8 дней · все данные только на телефоне").font(.caption2)) {
-                        EmptyView()
-                    }
+            List {
+                TodaySection(anchor: anchor)
+                CalendarSection(now: Date(), anchor: anchor)
+                UpcomingSection(anchor: anchor)
+                Section(footer: Text("график 2–2–4 · цикл 8 дней · все данные только на телефоне").font(.caption2)) {
+                    EmptyView()
                 }
-                .listStyle(.insetGrouped)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Смены")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -379,30 +377,40 @@ struct ContentView: View {
 //MARK: - Блок «Сегодня»
 
 struct TodaySection: View {
+    let anchor: Date
+
+    var body: some View {
+        Section {
+            TimelineView(.periodic(from: .now, by: 30)) { timeline in
+                TodayCard(now: timeline.date, anchor: anchor)
+            }
+        }
+    }
+}
+
+struct TodayCard: View {
     let now: Date
     let anchor: Date
 
     var body: some View {
         let st = StatusBuilder.build(now: now, anchor: anchor)
-        Section {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Сегодня — " + Fmt.cap(Fmt.wdLong.string(from: now)) + ", " + Fmt.dMonth.string(from: now))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                HStack(alignment: .top, spacing: 10) {
-                    Text(st.emoji).font(.title2)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(st.headline).font(.title3).fontWeight(.semibold)
-                        Text(st.sub).font(.subheadline).foregroundColor(.secondary)
-                    }
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Сегодня — " + Fmt.cap(Fmt.wdLong.string(from: now)) + ", " + Fmt.dMonth.string(from: now))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            HStack(alignment: .top, spacing: 10) {
+                Text(st.emoji).font(.title2)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(st.headline).font(.title3).fontWeight(.semibold)
+                    Text(st.sub).font(.subheadline).foregroundColor(.secondary)
                 }
-                if !st.hint.isEmpty {
-                    Text(st.hint).font(.caption).foregroundColor(.secondary)
-                }
-                CycleStrip(anchor: anchor, highlight: st.highlightSlot)
             }
-            .padding(.vertical, 4)
+            if !st.hint.isEmpty {
+                Text(st.hint).font(.caption).foregroundColor(.secondary)
+            }
+            CycleStrip(anchor: anchor, highlight: st.highlightSlot)
         }
+        .padding(.vertical, 4)
     }
 }
 
@@ -602,33 +610,7 @@ struct DetailRow: View {
 //MARK: - Ближайшие смены
 
 struct UpcomingSection: View {
-    let now: Date
     let anchor: Date
-
-    var body: some View {
-        Section(header: Text("Ближайшие смены")) {
-            let rows = upcoming
-            if rows.isEmpty {
-                Text("Настрой дату в ⚙️ Настройках").font(.subheadline).foregroundColor(.secondary)
-            } else {
-                ForEach(0..<rows.count, id: \.self) { i in
-                    let o = rows[i]
-                    let s = slots[o.slot]
-                    HStack(spacing: 10) {
-                        Circle().fill(colorFor(s.t)).frame(width: 10, height: 10)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(s.name).font(.subheadline).fontWeight(.medium)
-                            Text(whenText(o)).font(.caption).foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Text(o.isCurrent ? "идёт сейчас" : rightText(o))
-                            .font(.caption2).foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-        }
-    }
 
     struct CurrentOccurrence {
         let slot: Int
@@ -638,7 +620,20 @@ struct UpcomingSection: View {
         let isCurrent: Bool
     }
 
-    private var upcoming: [CurrentOccurrence] {
+    var body: some View {
+        Section(header: Text("Ближайшие смены")) {
+            let rows = upcomingRows(Date())
+            if rows.isEmpty {
+                Text("Настрой дату в ⚙️ Настройках").font(.subheadline).foregroundColor(.secondary)
+            } else {
+                ForEach(0..<rows.count, id: \.self) { i in
+                    UpcomingRow(o: rows[i])
+                }
+            }
+        }
+    }
+
+    private func upcomingRows(_ now: Date) -> [CurrentOccurrence] {
         var rows: [CurrentOccurrence] = []
         if let cur = ShiftModel.currentShift(now: now, anchor: anchor) {
             rows.append(CurrentOccurrence(slot: cur.slot, day: cur.day, start: cur.start, end: cur.end, isCurrent: true))
@@ -652,17 +647,40 @@ struct UpcomingSection: View {
         return rows
     }
 
-    private func whenText(_ o: CurrentOccurrence) -> String {
-        if o.isCurrent {
+    struct UpcomingRow: View {
+        let o: CurrentOccurrence
+
+        var body: some View {
+            let s = slots[o.slot]
+            return HStack(spacing: 10) {
+                Circle().fill(colorFor(s.t)).frame(width: 10, height: 10)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(s.name).font(.subheadline).fontWeight(.medium)
+                    TimelineView(.periodic(from: .now, by: 30)) { tl in
+                        Text(o.isCurrent ? currentLine(tl.date) : whenLine)
+                            .font(.caption).foregroundColor(.secondary)
+                    }
+                }
+                Spacer()
+                TimelineView(.periodic(from: .now, by: 30)) { tl in
+                    Text(o.isCurrent ? "идёт сейчас" : rightText(tl.date))
+                        .font(.caption2).foregroundColor(.secondary)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+
+        private func currentLine(_ now: Date) -> String {
             let dayWord = cal.isDate(o.day, inSameDayAs: now) ? "сегодня" : "вчера"
             return dayWord + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end) + " · до конца " + Fmt.dur(o.end.timeIntervalSince(now))
         }
-        return Fmt.cap(Fmt.wdShort.string(from: o.start)) + ", " + Fmt.dShort.string(from: o.start) + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end)
-    }
-
-    private func rightText(_ o: CurrentOccurrence) -> String {
-        if cal.isDate(o.start, inSameDayAs: now) { return "сегодня" }
-        return Fmt.rel(o.start, now)
+        private var whenLine: String {
+            Fmt.cap(Fmt.wdShort.string(from: o.start)) + ", " + Fmt.dShort.string(from: o.start) + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end)
+        }
+        private func rightText(_ now: Date) -> String {
+            if cal.isDate(o.start, inSameDayAs: now) { return "сегодня" }
+            return Fmt.rel(o.start, now)
+        }
     }
 }
 
