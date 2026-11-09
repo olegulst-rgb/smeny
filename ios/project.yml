@@ -1,0 +1,29 @@
+name: Smeny
+options:
+  bundleIdPrefix: local.smeny
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  Smeny:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - Assets.xcassets
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Смены
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCalendarsUsageDescription: Для сохранения смен в приложение «Календарь» с напоминаниями.
+        NSCalendarsFullAccessUsageDescription: Для сохранения смен в приложение «Календарь» с напоминаниями.
+        ITSAppUsesNonExemptEncryption: false
+schemes:
+  Smeny:
+    build:
+      targets:
+        Smeny: all
