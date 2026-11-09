@@ -137,7 +137,7 @@ enum Fmt {
     }
 
     static func relDay(_ d: Date, _ now: Date) -> String {
-        let n = cal.dateComponents([.day], from: dayStart(now), to: dayStart(d)).day ?? 0
+        let n = cal.dateComponents([.day], from: ShiftModel.dayStart(now), to: ShiftModel.dayStart(d)).day ?? 0
         if n == 0 { return "сегодня" }
         if n == 1 { return "завтра" }
         if n == -1 { return "вчера" }
@@ -176,16 +176,16 @@ enum Fmt {
 // MARK: - Статус «сейчас»
 
 struct Status {
-    let emoji: String
-    let headline: String
-    let sub: String
-    let hint: String
-    let highlightSlot: Int
+    var emoji: String
+    var headline: String
+    var sub: String
+    var hint: String
+    var highlightSlot: Int
 }
 
 enum StatusBuilder {
 
-    static func build(now: Date, anchor: Date, pos: Int) -> Status {
+    static func build(now: Date, anchor: Date) -> Status {
         let todaySlot = ShiftModel.slot(of: now, anchor: anchor)
 
         if let cur = ShiftModel.currentShift(now: now, anchor: anchor) {
@@ -423,6 +423,7 @@ struct CycleStrip: View {
                     ZStack {
                         Capsule()
                             .fill(colorFor(s.t))
+                            .frame(maxWidth: .infinity)
                             .frame(height: 26)
                         Text(s.short)
                             .font(.system(size: 12, weight: .bold))
@@ -529,7 +530,7 @@ struct CellView: View {
     var body: some View {
         let slot = ShiftModel.slot(of: date, anchor: anchor)
         let s = slots[slot]
-        Button(onTap) {
+        Button(action: onTap) {
             VStack(spacing: 3) {
                 Text("\(cal.component(.day, from: date))")
                     .font(.caption)
@@ -590,7 +591,7 @@ struct DetailRow: View {
                     .font(.subheadline).fontWeight(.semibold)
                     .foregroundColor(s.t == .day ? .smenyDay : (s.t == .night ? .smenyNight : .secondary))
                 Spacer()
-                Button(onClose) { Image(systemName: "xmark").font(.caption).foregroundColor(.secondary) }
+                Button(action: onClose) { Image(systemName: "xmark").font(.caption).foregroundColor(.secondary) }
             }
             Text(data.sub).font(.caption).foregroundColor(.secondary)
         }
@@ -617,10 +618,7 @@ struct UpcomingSection: View {
                         Circle().fill(colorFor(s.t)).frame(width: 10, height: 10)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(s.name).font(.subheadline).fontWeight(.medium)
-                            Text(o.isCurrent
-                                 ? (cal.isDate(o.day, inSameDayAs: now) ? "сегодня" : "вчера") + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end) + " · до конца " + Fmt.dur(o.end.timeIntervalSince(now))
-                                 : Fmt.cap(Fmt.wdShort.string(from: o.start)) + ", " + Fmt.dShort.string(from: o.start) + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end))
-                                .font(.caption).foregroundColor(.secondary)
+                            Text(whenText(o)).font(.caption).foregroundColor(.secondary)
                         }
                         Spacer()
                         Text(o.isCurrent ? "идёт сейчас" : rightText(o))
@@ -652,6 +650,14 @@ struct UpcomingSection: View {
             t = ShiftModel.addDays(nx.day, 1)
         }
         return rows
+    }
+
+    private func whenText(_ o: CurrentOccurrence) -> String {
+        if o.isCurrent {
+            let dayWord = cal.isDate(o.day, inSameDayAs: now) ? "сегодня" : "вчера"
+            return dayWord + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end) + " · до конца " + Fmt.dur(o.end.timeIntervalSince(now))
+        }
+        return Fmt.cap(Fmt.wdShort.string(from: o.start)) + ", " + Fmt.dShort.string(from: o.start) + " · " + Fmt.hhmm(o.start) + "–" + Fmt.hhmm(o.end)
     }
 
     private func rightText(_ o: CurrentOccurrence) -> String {
@@ -771,7 +777,8 @@ enum CalendarImporter {
         var target: EKCalendar?
         if let existing = store.calendars(for: .event).first(where: { $0.title == "Смены" }) {
             target = existing
-        } else if let newCal = EKCalendar(for: .event, eventStore: store) {
+        } else {
+            let newCal = EKCalendar(for: .event, eventStore: store)
             newCal.title = "Смены"
             newCal.source = store.defaultCalendarForNewEvents?.source
             do {
