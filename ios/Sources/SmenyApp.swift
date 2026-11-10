@@ -350,15 +350,21 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            List {
-                TodaySection(anchor: anchor)
-                CalendarSection(now: Date(), anchor: anchor)
-                UpcomingSection(anchor: anchor)
-                Section(footer: Text("график 2–2–4 · цикл 8 дней · все данные только на телефоне").font(.caption2)) {
-                    EmptyView()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    TodaySection(anchor: anchor)
+                    CalendarSection(now: Date(), anchor: anchor)
+                    UpcomingSection(anchor: anchor)
+                    Text("график 2–2–4 · цикл 8 дней · все данные только на телефоне")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 2)
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
             }
-            .listStyle(.insetGrouped)
+            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Смены")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -380,15 +386,15 @@ struct TodaySection: View {
     let anchor: Date
 
     var body: some View {
-        Section {
+        Card {
             TimelineView(.periodic(from: .now, by: 30)) { timeline in
-                TodayCard(now: timeline.date, anchor: anchor)
+                TodayContent(now: timeline.date, anchor: anchor)
             }
         }
     }
 }
 
-struct TodayCard: View {
+struct TodayContent: View {
     let now: Date
     let anchor: Date
 
@@ -410,7 +416,6 @@ struct TodayCard: View {
             }
             CycleStrip(anchor: anchor, highlight: st.highlightSlot)
         }
-        .padding(.vertical, 4)
     }
 }
 
@@ -462,6 +467,26 @@ func textFor(_ t: ShiftType) -> Color {
     }
 }
 
+//MARK: - Карточка (контейнер)
+
+struct Card<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+            )
+    }
+}
+
 //MARK: - Календарь на месяц
 
 struct CalendarSection: View {
@@ -478,35 +503,44 @@ struct CalendarSection: View {
     }
 
     var body: some View {
-        Section(header: Text("Календарь")) {
-            HStack {
-                Button { month = ShiftModel.addDays(month, -1) } label: { Text("‹").font(.title3) }
-                    .frame(width: 36)
-                Spacer()
-                Text(monthTitle).font(.headline)
-                Button { month = ShiftModel.dayStart(now); selected = nil } label: { Text("Сегодня").font(.footnote).padding(4) }
-                    .opacity(isCurrent ? 0 : 1)
-                Spacer()
-                Button { month = ShiftModel.addDays(month, 1) } label: { Text("›").font(.title3) }
-                    .frame(width: 36)
-            }
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Button { month = ShiftModel.addDays(month, -1) } label: { Text("‹").font(.title3) }
+                        .frame(width: 36)
+                    Spacer()
+                    Text(monthTitle).font(.headline)
+                    Button { month = ShiftModel.dayStart(now); selected = nil } label: { Text("Сегодня").font(.footnote).padding(4) }
+                        .opacity(isCurrent ? 0 : 1)
+                    Spacer()
+                    Button { month = ShiftModel.addDays(month, 1) } label: { Text("›").font(.title3) }
+                        .frame(width: 36)
+                }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7), spacing: 6) {
-                ForEach(["пн","вт","ср","чт","пт","сб","вс"], id: \.self) { d in
-                    Text(d).font(.caption2).foregroundColor(.secondary)
-                }
-                ForEach(0..<leadCount, id: \.self) { _ in
-                    Color.clear.frame(height: 44)
-                }
-                ForEach(1...(daysInMonth), id: \.self) { day in
-                    CellView(date: cellDate(day), anchor: anchor, now: now, isToday: cal.isDate(cellDate(day), inSameDayAs: now)) {
-                        selected = cellDate(day)
+                HStack(spacing: 2) {
+                    ForEach(["пн","вт","ср","чт","пт","сб","вс"], id: \.self) { d in
+                        Text(d).font(.caption2).foregroundColor(.secondary).frame(maxWidth: .infinity)
                     }
                 }
-            }
 
-            if let sel = selected {
-                DetailRow(date: sel, anchor: anchor, now: now) { selected = nil }
+                ForEach(0..<chunked.count, id: \.self) { r in
+                    HStack(spacing: 2) {
+                        ForEach(0..<7, id: \.self) { c in
+                            if let d = chunked[r][c] {
+                                CellView(date: d, anchor: anchor, now: now, isToday: cal.isDate(d, inSameDayAs: now)) {
+                                    selected = d
+                                }
+                            } else {
+                                Color.clear.frame(height: 40)
+                            }
+                        }
+                    }
+                }
+
+                if let sel = selected {
+                    DetailRow(date: sel, anchor: anchor, now: now) { selected = nil }
+                        .padding(.top, 4)
+                }
             }
         }
     }
@@ -517,13 +551,23 @@ struct CalendarSection: View {
               let range = cal.range(of: .day, in: .month, for: first) else { return [] }
         return range.compactMap { cal.date(byAdding: .day, value: $0 - 1, to: first) }
     }
-    private var daysInMonth: Int { monthDays.count }
     private var leadCount: Int {
         guard let f = monthDays.first else { return 0 }
         let w = cal.component(.weekday, from: f) // 1 = вс … 7 = сб
         return (w + 5) % 7 // сдвиг от понедельника
     }
-    private func cellDate(_ day: Int) -> Date { monthDays[day - 1] }
+    private var chunked: [[Date?]] {
+        var items: [Date?] = Array(repeating: nil, count: leadCount)
+        items.append(contentsOf: monthDays)
+        while items.count % 7 != 0 { items.append(nil) }
+        var out: [[Date?]] = []
+        var i = 0
+        while i < items.count {
+            out.append(Array(items[i..<(i + 7)]))
+            i += 7
+        }
+        return out
+    }
     private var monthTitle: String { Fmt.cap(Fmt.monthYear.string(from: month)) }
     private var isCurrent: Bool { cal.isDate(month, equalTo: now, toGranularity: .month) }
 }
@@ -621,13 +665,16 @@ struct UpcomingSection: View {
     }
 
     var body: some View {
-        Section(header: Text("Ближайшие смены")) {
-            let rows = upcomingRows(Date())
-            if rows.isEmpty {
-                Text("Настрой дату в ⚙️ Настройках").font(.subheadline).foregroundColor(.secondary)
-            } else {
-                ForEach(0..<rows.count, id: \.self) { i in
-                    UpcomingRow(o: rows[i])
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Ближайшие смены").font(.headline)
+                let rows = upcomingRows(Date())
+                if rows.isEmpty {
+                    Text("Настрой дату в ⚙️ Настройках").font(.subheadline).foregroundColor(.secondary)
+                } else {
+                    ForEach(0..<rows.count, id: \.self) { i in
+                        UpcomingRow(o: rows[i])
+                    }
                 }
             }
         }
