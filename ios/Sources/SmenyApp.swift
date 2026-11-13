@@ -52,6 +52,10 @@ enum ShiftModel {
         cal.date(byAdding: .day, value: n, to: dayStart(date)) ?? date
     }
 
+    static func addMonths(_ date: Date, _ n: Int) -> Date {
+        cal.date(byAdding: .month, value: n, to: date) ?? date
+    }
+
     static func atTime(_ date: Date, _ h: Int, _ m: Int) -> Date {
         cal.date(bySettingHour: h, minute: m, second: 0, of: date) ?? date
     }
@@ -506,14 +510,14 @@ struct CalendarSection: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
-                    Button { month = ShiftModel.addDays(month, -1) } label: { Text("‹").font(.title3) }
+                    Button { month = ShiftModel.addMonths(month, -1) } label: { Text("‹").font(.title3) }
                         .frame(width: 36)
                     Spacer()
                     Text(monthTitle).font(.headline)
                     Button { month = ShiftModel.dayStart(now); selected = nil } label: { Text("Сегодня").font(.footnote).padding(4) }
                         .opacity(isCurrent ? 0 : 1)
                     Spacer()
-                    Button { month = ShiftModel.addDays(month, 1) } label: { Text("›").font(.title3) }
+                    Button { month = ShiftModel.addMonths(month, 1) } label: { Text("›").font(.title3) }
                         .frame(width: 36)
                 }
 
