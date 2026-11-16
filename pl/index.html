@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Zmiany</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zmiany">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F2F3F7" id="meta-light">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0F13" id="meta-dark">
+<meta name="color-scheme" content="light dark">
+<style>
+:root{
+  --bg:#F2F3F7; --card:#FFFFFF; --line:#E3E6EB; --field:#F6F7F9;
+  --text:#171A20; --muted:#7A808A; --accent:#0A84FF;
+  --day:#F0A32F; --night:#3D4EA8;
+  --off:#E4E7EC; --off-txt:#9AA0AB;
+  --danger:#E5484D;
+}
+html[data-appearance="dark"]{
+  --bg:#0E0F13; --card:#1A1C22; --line:#2A2D35; --field:#23262D;
+  --text:#F2F4F8; --muted:#98A0AC;
+  --day:#E8991F; --night:#7A8BE8;
+  --off:#2A2D35; --off-txt:#8B919C;
+  --danger:#FF6369;
+}
+@media (prefers-color-scheme: dark){
+  html:not([data-appearance="light"]){
+    --bg:#0E0F13; --card:#1A1C22; --line:#2A2D35; --field:#23262D;
+    --text:#F2F4F8; --muted:#98A0AC;
+    --day:#E8991F; --night:#7A8BE8;
+    --off:#2A2D35; --off-txt:#8B919C;
+    --danger:#FF6369;
+  }
+}
+*{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font:16px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Roboto, sans-serif;
+  -webkit-font-smoothing:antialiased; min-height:100dvh;
+}
+button{ font:inherit; color:inherit; cursor:pointer; }
+.app{
+  max-width:560px; margin:0 auto;
+  padding: calc(14px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+}
+.topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.topbar h1{ font-size:26px; font-weight:800; letter-spacing:-.4px; margin:0; }
+.icon-btn{
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); font-size:17px; padding:0; line-height:1;
+}
+.card{
+  background:var(--card); border-radius:16px; padding:16px; margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(10,15,30,.06);
+}
+.card h2{ font-size:16px; font-weight:700; margin:0 0 10px; }
+.foot{ text-align:center; color:var(--muted); font-size:11px; margin:10px 0 4px; }
+
+/* ---------- status ---------- */
+.status{ position:relative; padding-left:22px; }
+.status::before{
+  content:''; position:absolute; left:0; top:14px; bottom:14px; width:4px; border-radius:4px;
+  background:var(--day);
+}
+.status.night::before{ background:var(--night); }
+.status.off::before{ background:var(--off); }
+.st-date{ color:var(--muted); font-size:13px; margin-bottom:8px; }
+.st-main{ display:flex; gap:10px; align-items:flex-start; }
+.st-emoji{ font-size:30px; line-height:1.2; }
+.st-headline{ font-size:21px; font-weight:800; letter-spacing:-.2px; line-height:1.2; }
+.st-sub{ color:var(--muted); font-size:15px; margin-top:3px; }
+.st-hint{ color:var(--muted); font-size:12.5px; margin-top:8px; }
+.cycle{ margin-top:14px; border-top:1px solid var(--line); padding-top:12px; }
+.cycle-top{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
+.cycle-strip{ display:flex; gap:4px; }
+.seg{
+  flex:1; height:30px; border-radius:8px; display:grid; place-items:center;
+  font-size:13px; font-weight:700; color:#fff;
+}
+.seg.day{ background:var(--day); }
+.seg.night{ background:var(--night); }
+.seg.off{ background:var(--off); color:var(--off-txt); }
+.seg.cur{ box-shadow:0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
+.cycle-legend{ color:var(--muted); font-size:11px; margin-top:8px; }
+
+/* ---------- kalendarz ---------- */
+.cal-head{ display:flex; align-items:center; gap:8px; }
+.cal-head h2{ flex:1; text-align:center; margin:0; font-size:16px; font-weight:700; }
+.cal-nav{
+  width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+  background:var(--card); font-size:15px; padding:0; color:var(--text); flex:none;
+}
+.cal-today-btn{
+  border:0; background:var(--accent); color:#fff; border-radius:10px;
+  padding:6px 10px; font-size:12px; font-weight:600; flex:none;
+}
+.dow-row{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:3px;
+  margin:12px 0 2px; text-align:center; color:var(--muted); font-size:11px; font-weight:600;
+}
+#cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px 3px; }
+.cell{
+  border:0; background:transparent; padding:2px 1px 4px; border-radius:12px;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  -webkit-tap-highlight-color:transparent;
+}
+.cell .num{ font-size:13px; font-weight:500; }
+.cell.off-chip .num{ color:var(--muted); }
+.cell.today{ box-shadow:inset 0 0 0 1.5px var(--accent); border-radius:12px; }
+.chip{
+  width:100%; font-size:10px; font-weight:600; border-radius:7px;
+  padding:4px 0; text-align:center; color:#fff;
+}
+.chip.day{ background:var(--day); }
+.chip.night{ background:var(--night); }
+.chip.off{ background:var(--off); color:var(--off-txt); }
+.day-detail{
+  margin-top:12px; border-radius:12px; background:var(--field);
+  padding:12px; font-size:14px; position:relative;
+}
+.day-detail .dd-title{ font-weight:700; margin-bottom:3px; }
+.day-detail .dd-sub{ color:var(--muted); font-size:13px; }
+.day-detail .dd-close{
+  position:absolute; right:8px; top:8px; border:0; background:transparent;
+  color:var(--muted); font-size:14px; padding:4px;
+}
+
+/* ---------- najbliższe zmiany ---------- */
+.up-list{ list-style:none; margin:0; padding:0; }
+.up-list li{ display:flex; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); align-items:flex-start; }
+.up-list li:last-child{ border-bottom:0; }
+.up-dot{ width:10px; height:10px; border-radius:50%; margin-top:6px; flex:none; }
+.up-dot.day{ background:var(--day); } .up-dot.night{ background:var(--night); }
+.up-name{ font-weight:600; font-size:15px; }
+.up-when{ color:var(--muted); font-size:13px; }
+.up-right{ margin-left:auto; color:var(--muted); font-size:12.5px; white-space:nowrap; padding-top:2px; }
+
+/* ---------- przyciski ---------- */
+.toolbar{ display:flex; gap:10px; margin:6px 0 8px; }
+.toolbar .btn{ flex:1; }
+.btn{
+  width:100%; padding:13px; border-radius:14px; border:0;
+  font-size:15px; font-weight:600; background:var(--card); color:var(--text);
+  box-shadow:0 1px 2px rgba(10,15,30,.06);
+}
+.btn.primary{ background:var(--accent); color:#fff; box-shadow:none; }
+.btn.ghost{ background:transparent; border:1.5px solid var(--line); box-shadow:none; }
+.btn + .btn{ margin-top:8px; }
+
+/* ---------- formularze ---------- */
+.field{ margin-top:14px; }
+.field label{ display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
+input[type="date"], select{
+  width:100%; padding:12px; font-size:16px; border-radius:12px;
+  border:1px solid var(--line); background:var(--field); color:var(--text);
+  font-family:inherit;
+}
+.pick{
+  display:flex; gap:10px; align-items:flex-start; padding:12px;
+  border:1.5px solid var(--line); border-radius:12px; margin-top:8px; font-size:14px;
+  -webkit-user-select:none; user-select:none;
+}
+.pick input{ margin-top:2px; accent-color:var(--accent); flex:none; }
+.pick:has(input:checked){ border-color:var(--accent); background:rgba(10,132,255,.08); }
+.su-note{ color:var(--muted); font-size:13px; margin:10px 0 0; }
+.su-quote{
+  background:var(--field); border-radius:12px; padding:10px 12px;
+  font-size:13.5px; margin:10px 0 0; position:relative; padding-right:44px;
+}
+.su-quote button{
+  position:absolute; right:6px; top:50%; transform:translateY(-50%);
+  border:0; background:transparent; font-size:17px; padding:6px;
+}
+.mini-link{ color:var(--accent); font-size:13px; background:none; border:0; padding:2px 0 0; }
+.link-row{ display:flex; gap:8px; align-items:center; margin-top:10px; }
+.link-row .link{ font-size:12px; color:var(--muted); word-break:break-all; flex:1; }
+
+/* ---------- szuflady ---------- */
+.backdrop{
+  position:fixed; inset:0; background:rgba(10,12,16,.45); z-index:50;
+  display:flex; align-items:flex-end; justify-content:center;
+  opacity:0; pointer-events:none; transition:opacity .2s;
+}
+.backdrop.open{ opacity:1; pointer-events:auto; }
+.sheet{
+  background:var(--card); width:100%; max-width:560px;
+  border-radius:18px 18px 0 0;
+  padding:18px 18px calc(20px + env(safe-area-inset-bottom));
+  max-height:88dvh; overflow:auto;
+  transform:translateY(30px); transition:transform .22s;
+}
+.backdrop.open .sheet{ transform:translateY(0); }
+.sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.sheet-head h2{ margin:0; font-size:18px; font-weight:800; }
+.sheet-x{ border:0; background:var(--field); width:32px; height:32px; border-radius:50%; font-size:14px; }
+.sheet p, .sheet li{ font-size:14px; color:var(--text); }
+.sheet .muted{ color:var(--muted); }
+.sheet ol{ padding-left:20px; margin:8px 0; }
+.sheet ol li{ margin-bottom:6px; }
+.warn{ color:var(--danger); font-size:12.5px; margin-top:8px; }
+
+/* ---------- pierwszy start ---------- */
+#setup{ max-width:520px; margin:8dvh auto 0; }
+#setup .steps{ color:var(--muted); font-size:14px; }
+
+/* ---------- toast ---------- */
+#toast{
+  position:fixed; left:50%; bottom:calc(24px + env(safe-area-inset-bottom));
+  transform:translateX(-50%);
+  background:#1C1F26; color:#fff; padding:10px 16px; border-radius:12px;
+  font-size:14px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:99;
+  max-width:90vw; text-align:center;
+}
+#toast.show{ opacity:1; }
+
+@media (min-width:600px){
+  #setup{ margin-top:20dvh; }
+  .st-headline{ font-size:24px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <h1>Zmiany</h1>
+    <button class="icon-btn" id="btn-settings" aria-label="Ustawienia">⚙️</button>
+  </header>
+
+  <!-- PIERWSZY START -->
+  <section class="card" id="setup" hidden>
+    <h2>Konfiguracja grafiku</h2>
+    <p class="steps">To kalendarz zmian według grafiku
+      «2 dni → 2 noce → 4 dni wolne» (cykl — 8 dni).<br><br>
+      Żeby wszystko się zgadzało, potrzebna jest jedna data: <b>dowolny dzień,
+      kiedy była zmiana dzienna (07:00–19:00)</b>. Nawet w przeszłości.</p>
+    <div class="field">
+      <label for="su-date">Dzień ze zmianą dzienną (07:00–19:00)</label>
+      <input type="date" id="su-date">
+    </div>
+    <div class="field">
+      <label>Co było następnego dnia?</label>
+      <label class="pick" for="su-pos0">
+        <input type="radio" name="su-pos" id="su-pos0" value="0" checked>
+        <span>Kolejna <b>dzienna</b> (07–19)<br><span style="color:var(--muted)">ten dzień to 1. w cyklu</span></span>
+      </label>
+      <label class="pick" for="su-pos1">
+        <input type="radio" name="su-pos" id="su-pos1" value="1">
+        <span><b>Nocna</b> (od 19:00)<br><span style="color:var(--muted)">ten dzień to 2. w cyklu</span></span>
+      </label>
+    </div>
+    <div class="field">
+      <button class="btn primary" id="su-save">Gotowe</button>
+    </div>
+    <div class="su-quote" id="su-q">
+      Nie znasz daty? Zapytaj tak:<br>
+      <i>«Powiedz, jakiego dnia była u ciebie ostatnia zmiana dzienna (07–19)
+      na początku obecnego cyklu? I co było następnego dnia — kolejna dzienna czy nocna?»</i>
+      <button id="su-copyq" aria-label="Kopiuj pytanie">📋</button>
+    </div>
+  </section>
+
+  <!-- EKRAN GŁÓWNY -->
+  <main id="main" hidden>
+    <section class="card status" id="status-card">
+      <div class="st-date" id="st-date"></div>
+      <div class="st-main">
+        <div class="st-emoji" id="st-emoji">☀️</div>
+        <div>
+          <div class="st-headline" id="st-headline"></div>
+          <div class="st-sub" id="st-sub"></div>
+        </div>
+      </div>
+      <div class="st-hint" id="st-hint" hidden></div>
+      <div class="cycle">
+        <div class="cycle-top"><span>Cykl · 8 dni</span><span id="cycle-pos"></span></div>
+        <div class="cycle-strip" id="cycle-strip"></div>
+        <div class="cycle-legend">D — dzienna (07–19) · N — nocna (19–07) · W — wolne</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="cal-head">
+        <button class="cal-nav" id="cal-prev" aria-label="Poprzedni miesiąc">‹</button>
+        <h2 id="cal-title"></h2>
+        <button class="cal-today-btn" id="cal-today-btn" hidden>Dziś</button>
+        <button class="cal-nav" id="cal-next" aria-label="Następny miesiąc">›</button>
+      </div>
+      <div class="dow-row"><span>pn</span><span>wt</span><span>śr</span><span>czw</span><span>pt</span><span>sob</span><span>nd</span></div>
+      <div id="cal-grid"></div>
+      <div class="day-detail" id="day-detail" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>Najbliższe zmiany</h2>
+      <ul class="up-list" id="up-list"></ul>
+    </section>
+
+    <div class="toolbar">
+      <button class="btn primary" id="btn-ics">📅 Dodaj do Kalendarza iPhone</button>
+      <button class="btn" id="btn-home">🏠 Jak dodać ikonę</button>
+    </div>
+
+    <footer class="foot">grafik 2–2–4 · cykl 8 dni · wszystko liczone na telefonie, nic nigdzie nie wysyłane ·
+      <a href="../" style="color:var(--accent); text-decoration:none">Русский</a></footer>
+  </main>
+</div>
+
+<!-- SZUFLADA: USTAWIENIA -->
+<div class="backdrop" id="sheet-settings">
+  <div class="sheet" role="dialog" aria-label="Ustawienia">
+    <div class="sheet-head">
+      <h2>Ustawienia</h2>
+      <button class="sheet-x" data-close="sheet-settings">✕</button>
+    </div>
+    <div class="field">
+      <label for="set-date">Dzień ze zmianą dzienną (07:00–19:00)</label>
+      <input type="date" id="set-date">
+    </div>
+    <div class="field">
+      <label>Co było następnego dnia?</label>
+      <label class="pick" for="set-pos0">
+        <input type="radio" name="set-pos" id="set-pos0" value="0" checked>
+        <span>Dzienna — ten dzień to 1. w cyklu</span>
+      </label>
+      <label class="pick" for="set-pos1">
+        <input type="radio" name="set-pos" id="set-pos1" value="1">
+        <span>Nocna — ten dzień to 2. w cyklu</span>
+      </label>
+    </div>
+    <div class="field">
+      <label for="set-appearance">Motyw</label>
+      <select id="set-appearance">
+        <option value="auto">jak w telefonie</option>
+        <option value="light">jasny</option>
+        <option value="dark">ciemny</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="set-rem">Przypomnienie przy eksporcie do kalendarza</label>
+      <select id="set-rem">
+        <option value="60">60 minut przed zmianą</option>
+        <option value="30">30 minut przed zmianą</option>
+        <option value="15">15 minut przed zmianą</option>
+        <option value="0">bez przypomnień</option>
+      </select>
+    </div>
+    <div class="field">
+      <button class="btn primary" id="set-save">Zapisz</button>
+      <button class="btn ghost" id="set-reset">Zresetuj wszystko</button>
+    </div>
+    <div class="link-row" id="set-link-row" hidden>
+      <span class="link" id="set-link"></span>
+      <button class="mini-link" id="set-linkbtn">kopiuj</button>
+    </div>
+  </div>
+</div>
+
+<!-- SZUFLADA: EKSPORT DO KALENDARZA -->
+<div class="backdrop" id="sheet-ics">
+  <div class="sheet" role="dialog" aria-label="Eksport do kalendarza">
+    <div class="sheet-head">
+      <h2>Kalendarz iPhone</h2>
+      <button class="sheet-x" data-close="sheet-ics">✕</button>
+    </div>
+    <p>Pobierz plik — i wszystkie zmiany na rok w przód pojawią się w zwykłej aplikacji
+      <b>«Kalendarz»</b>: z powiadomieniami, offline, razem z innymi wydarzeniami.</p>
+    <div class="field">
+      <label for="ics-rem">Przypomnienia o zmianach</label>
+      <select id="ics-rem">
+        <option value="60">60 minut przed zmianą</option>
+        <option value="30">30 minut przed zmianą</option>
+        <option value="15">15 minut przed zmianą</option>
+        <option value="0">bez przypomnień</option>
+      </select>
+    </div>
+    <div class="field">
+      <button class="btn primary" id="btn-dl">⬇️ Pobierz plik kalendarza (.ics)</button>
+    </div>
+    <p class="muted" style="margin-top:14px; font-weight:600">Jak zaimportować:</p>
+    <ol>
+      <li>Po pobraniu otwórz «Pliki» → folder «Pobrane».</li>
+      <li>Dotknij pliku <b>zmiany.ics</b> — otworzy się podgląd.</li>
+      <li>Na dole wciśnij <b>«Dodaj wszystkie»</b> i wybierz kalendarz (można utworzyć nowy, np. «Zmiany»).</li>
+      <li>Gotowe: zmiany są widoczne w «Kalendarzu» i przychodzą przypomnienia.</li>
+    </ol>
+    <p class="warn">Importuj tylko raz — ponowny import utworzy duplikaty.</p>
+  </div>
+</div>
+
+<!-- SZUFLADA: IKONA NA EKRAN GŁÓWNY -->
+<div class="backdrop" id="sheet-help">
+  <div class="sheet" role="dialog" aria-label="Ikona na ekran główny">
+    <div class="sheet-head">
+      <h2>Ikona na ekranie głównym</h2>
+      <button class="sheet-x" data-close="sheet-help">✕</button>
+    </div>
+    <ol>
+      <li>Otwórz tę stronę w <b>Safari</b>.<br>
+        <span class="muted">Jeśli otworzyła się w podglądzie «Plików» albo w Telegramie,
+        wciśnij «Udostępnij» i wybierz Safari (czasem prościej zapisać plik w «Plikach» i otworzyć stamtąd).</span></li>
+      <li>Na dole pośrodku — przycisk «Udostępnij» (kwadrat ze strzałką w górę).</li>
+      <li>Przewiń listę w dół → <b>«Na ekran główny»</b>.</li>
+      <li>Nazwa «Zmiany» → <b>«Dodaj»</b>.</li>
+    </ol>
+    <p class="muted">Ikona otwiera zmiany na pełnym ekranie. Internet nie jest potrzebny.
+    Jeśli ikona się nie doda — nie szkodzi: zmiany i przypomnienia
+    i tak będą w zwykłym «Kalendarzu» (przycisk «Dodaj do Kalendarza iPhone»).</p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+(function(){
+const DAY_MS = 86400000;
+const STORE_KEY = 'smeny-settings-v1';
+const SLOTS = {
+  0:{t:'day',   name:'Zmiana dzienna', short:'D', start:'07:00', end:'19:00'},
+  1:{t:'day',   name:'Zmiana dzienna', short:'D', start:'07:00', end:'19:00'},
+  2:{t:'night', name:'Zmiana nocna',  short:'N', start:'19:00', end:'07:00'},
+  3:{t:'night', name:'Zmiana nocna',  short:'N', start:'19:00', end:'07:00'},
+  4:{t:'off',   name:'Dzień wolny',   short:'W'},
+  5:{t:'off',   name:'Dzień wolny',   short:'W'},
+  6:{t:'off',   name:'Dzień wolny',   short:'W'},
+  7:{t:'off',   name:'Dzień wolny',   short:'W'},
+};
+const OFF_NAMES = ['1. dzień wolny','2. dzień wolny','3. dzień wolny','4. dzień wolny'];
+const MONTHS_FULL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+const wdShort = new Intl.DateTimeFormat('pl-PL',{weekday:'short'});
+const wdLong  = new Intl.DateTimeFormat('pl-PL',{weekday:'long'});
+const dMonth  = new Intl.DateTimeFormat('pl-PL',{day:'numeric',month:'long'});
+const dShort  = new Intl.DateTimeFormat('pl-PL',{day:'numeric',month:'short'});
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+const $ = id => document.getElementById(id);
+
+// ---------- daty ----------
+const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d,n) => { const r = new Date(d.getFullYear(), d.getMonth(), d.getDate()); r.setDate(r.getDate()+n); return r; };
+const parseISO = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); };
+const toISO = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const atTime = (d,hm) => { const p = hm.split(':').map(Number); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), p[0], p[1]); };
+const shiftEnd = (d,slot) => atTime(SLOTS[slot].t==='night' ? addDays(d,1) : d, SLOTS[slot].end);
+
+// formy mnogie po polsku: 1 dzień / 2 dni [jedna forma na oba drugie wywołania]
+function plural(n, one, few, many){
+  if (n === 1) return one;
+  const n10 = n%10, n100 = n%100;
+  if (n10>=2 && n10<=4 && (n100<12 || n100>14)) return few;
+  return many;
+}
+function fmtDur(ms){
+  ms = Math.max(0, ms);
+  const totalMin = Math.round(ms/60000);
+  if (totalMin < 60) return totalMin + ' min';
+  const h = Math.floor(totalMin/60), m = totalMin%60;
+  if (h < 24) return h+' godz'+(m ? ' '+m+' min' : '');
+  const d = Math.floor(h/24), hh = h%24;
+  return d+' '+plural(d,'dzień','dni','dni')+(hh ? ' '+hh+' godz' : '');
+}
+function fmtRel(target, now){
+  const ms = target - now;
+  if (ms <= 60000) return 'już';
+  if (ms < 3600000) return 'za '+Math.ceil(ms/60000)+' min';
+  return 'za '+fmtDur(ms);
+}
+function relDay(todayDate, d){
+  const n = Math.round((startOfDay(d)-startOfDay(todayDate))/DAY_MS);
+  if (n===0) return 'dziś';
+  if (n===1) return 'jutro';
+  if (n===-1) return 'wczoraj';
+  return n>0 ? 'za '+n+' '+plural(n,'dzień','dni','dni')
+             : Math.abs(n)+' '+plural(Math.abs(n),'dzień temu','dni temu','dni temu');
+}
+const ddTT = dt => String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+
+// ---------- stan ----------
+let settings = null; // {base:'YYYY-MM-DD', pos:0|1, alarm:60}
+function anchorDate(){ return addDays(parseISO(settings.base), -settings.pos); }
+function slotOf(date){
+  const diff = Math.round((startOfDay(date) - startOfDay(anchorDate()))/DAY_MS);
+  return ((diff % 8) + 8) % 8;
+}
+function loadSettings(){
+  try { const raw = localStorage.getItem(STORE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e){ return null; }
+}
+function saveSettings(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(settings)); } catch(e){}
+}
+function clearSettings(){ try { localStorage.removeItem(STORE_KEY); } catch(e){} }
+
+// ---------- obliczenia zmian ----------
+function currentShift(now){
+  const t0 = startOfDay(now);
+  for (let back = 1; back >= 0; back--){
+    const d = addDays(t0, -back);
+    const slot = slotOf(d);
+    if (SLOTS[slot].t === 'off') continue;
+    const st = atTime(d, SLOTS[slot].start);
+    const en = shiftEnd(d, slot);
+    if (now >= st && now < en) return {slot, d, start:st, end:en};
+  }
+  return null;
+}
+function nextShiftFrom(t){
+  const d0 = startOfDay(t);
+  for (let i = 0; i < 9; i++){
+    const d = addDays(d0, i);
+    const slot = slotOf(d);
+    if (SLOTS[slot].t === 'off') continue;
+    const st = atTime(d, SLOTS[slot].start);
+    if (st > t) return {d, slot, start:st};
+  }
+  return null;
+}
+function buildStatus(now){
+  const cur = currentShift(now);
+  const todaySlot = slotOf(now);
+  const out = {cls:null, emoji:'😴', headline:'', sub:'', hint:''};
+  if (cur){
+    const s = SLOTS[cur.slot];
+    out.cls = s.t; out.emoji = s.t==='day' ? '☀️' : '🌙';
+    out.headline = 'Teraz: ' + s.name.toLowerCase();
+    out.sub = s.start+'–'+s.end+' · do końca '+fmtDur(cur.end - now) + (s.t==='night' && cur.d.getTime()!==startOfDay(now).getTime() ? ' (zmiana rozpoczęła się wczoraj o 19:00)' : '');
+    return out;
+  }
+  const nx = nextShiftFrom(now);
+  if (nx){
+    const s = SLOTS[nx.slot];
+    const sameDay = startOfDay(nx.start).getTime() === startOfDay(now).getTime();
+    if (sameDay){
+      out.cls = s.t; out.emoji = s.t==='day' ? '☀️' : '🌙';
+      out.headline = 'Dziś: ' + s.name.toLowerCase() + ' o ' + s.start;
+      out.sub = 'początek za ' + fmtDur(nx.start - now);
+    } else if (SLOTS[todaySlot].t === 'day') {
+      out.cls = 'day'; out.emoji = '☀️';
+      out.headline = 'Zmiana się zakończyła';
+      out.hint = 'dziś była zmiana dzienna 07:00–19:00';
+      out.sub = 'nast. zmiana: ' + cap(wdShort.format(nx.start)) + ', ' + dShort.format(nx.start) +
+        ' · ' + s.name.toLowerCase() + ' ' + s.start + '–' + s.end + ' · ' + fmtRel(nx.start, now);
+    } else {
+      out.cls = 'off'; out.emoji = '😴';
+      out.headline = 'Dziś dzień wolny';
+      out.sub = 'nast. zmiana: ' + cap(wdShort.format(nx.start)) + ', ' + dShort.format(nx.start) +
+        ' · ' + s.name.toLowerCase() + ' o ' + s.start + ' · ' + fmtRel(nx.start, now);
+    }
+  }
+  if (SLOTS[todaySlot].t === 'off' && !cur) out.hint = OFF_NAMES[todaySlot - 4] + ' z 4';
+  return out;
+}
+
+// ---------- ICS ----------
+function pad2(n){ return String(n).padStart(2,'0'); }
+function fmtLocal(d){ return d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'T'+pad2(d.getHours())+pad2(d.getMinutes())+'00'; }
+function fmtUtc(d){
+  return d.getUTCFullYear()+pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate())+'T'+
+         pad2(d.getUTCHours())+pad2(d.getUTCMinutes())+pad2(d.getUTCSeconds())+'Z';
+}
+function buildIcs(daysBack, daysForward){
+  const now = new Date();
+  const from = addDays(startOfDay(now), -(daysBack||7));
+  const until = addDays(startOfDay(now), daysForward||370);
+  const alarm = settings.alarm|0;
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//zmiany-local//PL','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Zmiany'];
+  for (let d = from; d <= until; d = addDays(d,1)){
+    const slot = slotOf(d);
+    const s = SLOTS[slot];
+    if (s.t === 'off') continue;
+    const st = atTime(d, s.start), en = shiftEnd(d, slot);
+    lines.push('BEGIN:VEVENT',
+      'UID:zmiany-'+st.getTime()+'@shiftcal.local',
+      'DTSTAMP:'+fmtUtc(now),
+      'DTSTART:'+fmtLocal(st),
+      'DTEND:'+fmtLocal(en),
+      'SUMMARY:'+s.name+' '+s.start+'–'+s.end,
+      'DESCRIPTION:Grafik 2-2-4 (cykl 8 dni)\\, 1. dzień cyklu: '+settings.base);
+    if (alarm > 0){
+      lines.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Zmiana za '+alarm+' min',
+        'TRIGGER:-PT'+alarm+'M','END:VALARM');
+    }
+    lines.push('END:VEVENT');
+  }
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+function downloadIcs(){
+  const txt = buildIcs();
+  const blob = new Blob([txt], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'zmiany.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 5000);
+}
+
+// ---------- render ----------
+let view = null; // {y, m}
+function startView(){
+  const t = new Date();
+  view = {y: t.getFullYear(), m: t.getMonth()};
+}
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+function renderStatus(now){
+  const st = buildStatus(now);
+  const card = $('status-card');
+  card.className = 'card status ' + st.cls;
+  $('st-date').textContent = 'Dziś — ' + cap(wdLong.format(now)) + ', ' + dMonth.format(now);
+  $('st-emoji').textContent = st.emoji;
+  $('st-headline').textContent = st.headline;
+  $('st-sub').textContent = st.sub;
+  $('st-hint').textContent = st.hint;
+  $('st-hint').hidden = !st.hint;
+}
+function renderCycle(now, hlSlot){
+  const strip = $('cycle-strip');
+  strip.innerHTML = '';
+  const todaySlot = slotOf(now);
+  for (let i = 0; i < 8; i++){
+    const s = SLOTS[i];
+    const el = document.createElement('div');
+    el.className = 'seg ' + s.t + (i === hlSlot ? ' cur' : '');
+    el.textContent = s.short;
+    if (i === hlSlot) $('cycle-pos').textContent = (i+1) + '. z 8';
+    strip.appendChild(el);
+  }
+}
+function renderCalendar(){
+  const title = $('cal-title');
+  title.textContent = MONTHS_FULL[view.m] + ' ' + view.y;
+  const grid = $('cal-grid');
+  grid.innerHTML = '';
+  const first = new Date(view.y, view.m, 1);
+  const lead = (first.getDay() + 6) % 7; // przesunięcie od poniedziałku
+  const daysIn = new Date(view.y, view.m + 1, 0).getDate();
+  const now = new Date();
+  const todayISO = toISO(now);
+  for (let i = 0; i < lead; i++){
+    const g = document.createElement('span'); g.className = 'cell'; g.setAttribute('aria-hidden','true');
+    grid.appendChild(g);
+  }
+  for (let day = 1; day <= daysIn; day++){
+    const d = new Date(view.y, view.m, day);
+    const slot = slotOf(d);
+    const s = SLOTS[slot];
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cell' + (s.t==='off' ? ' off-chip' : '') + (toISO(d)===todayISO ? ' today' : '');
+    b.dataset.date = toISO(d);
+    b.innerHTML = '<span class="num">'+day+'</span><span class="chip '+s.t+'">'+
+      (s.t==='off' ? '—' : s.start.slice(0,2) + '–' + s.end.slice(0,2))+'</span>';
+    b.addEventListener('click', ()=>showDetail(d));
+    grid.appendChild(b);
+  }
+  $('cal-today-btn').hidden = (view.y===now.getFullYear() && view.m===now.getMonth());
+}
+function showDetail(d){
+  const box = $('day-detail');
+  box._d = toISO(d);
+  const slot = slotOf(d);
+  const s = SLOTS[slot];
+  let title, sub;
+  const now = new Date();
+  if (s.t === 'off'){
+    title = 'Dzień wolny';
+    sub = OFF_NAMES[slot-4] + ' z 4';
+  } else {
+    title = s.name;
+    sub = s.start + ' ' + dShort.format(atTime(d,s.start)) + ' → ' + s.end + ' ' + dShort.format(shiftEnd(d, slot)) +
+      ' · ' + relDay(now, d);
+  }
+  if (s.t==='off' && toISO(d)===toISO(now)){
+    const cs = currentShift(now);
+    if (cs && SLOTS[cs.slot].t==='night') sub += ' · teraz trwa jeszcze zmiana nocna (do ' + ddTT(cs.end) + ')';
+  }
+  box.innerHTML = '<button class="dd-close" aria-label="Zamknij">✕</button>' +
+    '<div class="dd-title" style="color:' + (s.t==='day'?'var(--day)':s.t==='night'?'var(--night)':'var(--muted)') + '">' +
+    cap(wdLong.format(d)) + ', ' + dMonth.format(d) + ' — ' + title + '</div>' +
+    '<div class="dd-sub">' + sub + '</div>';
+  box.hidden = false;
+  box.querySelector('.dd-close').addEventListener('click', ()=>{ box.hidden = true; });
+}
+function renderUpcoming(now){
+  const ul = $('up-list');
+  ul.innerHTML = '';
+  const rows = [];
+  const cur = currentShift(now);
+  if (cur) rows.push({slot:cur.slot, start:cur.start, end:cur.end, cur:true, d:cur.d});
+  let t = cur ? addDays(startOfDay(cur.d),1) : startOfDay(now);
+  for (let k = 0; k < 6; k++){
+    const nx = nextShiftFrom(t);
+    if (!nx) break;
+    rows.push({slot:nx.slot, start:nx.start, end:shiftEnd(nx.d, nx.slot), cur:false});
+    t = addDays(nx.d, 1);
+  }
+  rows.forEach(r => {
+    const s = SLOTS[r.slot];
+    const li = document.createElement('li');
+    const name = s.t==='day' ? 'Zmiana dzienna' : 'Zmiana nocna';
+    let when, right;
+    if (r.cur){
+      when = (r.d.getTime()===startOfDay(now).getTime() ? 'dziś' : 'wczoraj') + ' · ' + s.start + '–' + s.end + ' · do końca '+fmtDur(r.end-now);
+      right = 'trwa teraz';
+    } else {
+      when = cap(wdShort.format(r.start)) + ', ' + dShort.format(r.start) + ' · ' + s.start + '–' + s.end;
+      right = startOfDay(r.start).getTime()===startOfDay(now).getTime() ? 'dziś' : fmtRel(r.start, now);
+    }
+    li.innerHTML = '<span class="up-dot '+s.t+'"></span><span><span class="up-name">'+name+
+      (r.cur && s.t==='night' ? ' <span class="muted" style="font-weight:400">+ dzień wolny od 07:00</span>' : '')+
+      '</span><br><span class="up-when">'+when+'</span></span><span class="up-right">'+right+'</span>';
+    ul.appendChild(li);
+  });
+}
+function updateAll(){
+  if (!settings) return;
+  const now = new Date();
+  renderStatus(now);
+  const cur = currentShift(now);
+  renderCycle(now, cur ? cur.slot : slotOf(now));
+  renderUpcoming(now);
+  renderCalendar();
+  if (!$('day-detail').hidden && $('day-detail')._d) showDetail(parseISO($('day-detail')._d));
+}
+
+// ---------- szuflady / formularz ----------
+function openSheet(id){ $(id).classList.add('open'); }
+function closeSheet(id){ $(id).classList.remove('open'); }
+document.querySelectorAll('.sheet-x').forEach(b=>{
+  b.addEventListener('click', ()=>closeSheet(b.dataset.close));
+});
+document.querySelectorAll('.backdrop').forEach(bk=>{
+  bk.addEventListener('click', e=>{ if (e.target === bk) bk.classList.remove('open'); });
+});
+
+function saveFromForm(base, pos){
+  const prevApp = (settings && settings.appearance) ? settings.appearance : 'auto';
+  settings = {base: base, pos: pos, alarm: alarmVal(), appearance: prevApp};
+  saveSettings();
+  startView();
+  showMain();
+  closeSheet('sheet-settings');
+  updateAll();
+  toast('Zapisano: 1. dzień cyklu — ' + dShort.format(anchorDate()));
+}
+function alarmVal(){ return ($('set-rem') ? parseInt($('set-rem').value,10) : 60) || 0; }
+
+function showMain(){
+  $('setup').hidden = true;
+  $('main').hidden = false;
+}
+function showSetup(){
+  $('setup').hidden = false;
+  $('main').hidden = true;
+}
+
+// pierwszy start
+$('su-save').addEventListener('click', ()=>{
+  const base = $('su-date').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)){ toast('Najpierw wybierz datę'); return; }
+  const pos = $('su-pos1').checked ? 1 : 0;
+  saveFromForm(base, pos);
+});
+$('su-copyq').addEventListener('click', ()=>{
+  copyText('Powiedz, proszę, jakiego dnia była u ciebie ostatnia zmiana dzienna (07–19) na początku obecnego cyklu? I co było następnego dnia — kolejna dzienna czy nocna?');
+});
+function copyText(text){
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast('Skopiowano')).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('Skopiowano'); } catch(e){ }
+  ta.remove();
+}
+
+// ustawienia
+$('btn-settings').addEventListener('click', ()=>{
+  if (!settings) return;
+  $('set-date').value = settings.base;
+  $('set-pos0').checked = settings.pos === 0;
+  $('set-pos1').checked = settings.pos === 1;
+  $('set-appearance').value = settings.appearance || 'auto';
+  $('set-rem').value = String(settings.alarm);
+  const http = /^https?:$/.test(location.protocol);
+  if (http){
+    $('set-link-row').hidden = false;
+    $('set-link').textContent = location.origin + location.pathname + '#d1=' + settings.base + '&p=' + settings.pos + '&ra=' + settings.alarm;
+  }
+  openSheet('sheet-settings');
+});
+$('set-save').addEventListener('click', ()=>{
+  const base = $('set-date').value;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(base)){ toast('Najpierw wybierz datę'); return; }
+  saveFromForm(base, $('set-pos1').checked ? 1 : 0);
+});
+$('set-reset').addEventListener('click', ()=>{
+  clearSettings(); settings = null;
+  applyAppearance('auto');
+  closeSheet('sheet-settings');
+  showSetup();
+});
+$('set-linkbtn').addEventListener('click', ()=>{
+  copyText($('set-link').textContent);
+});
+
+// ICS
+$('btn-ics').addEventListener('click', ()=>{
+  $('ics-rem').value = String(settings.alarm);
+  openSheet('sheet-ics');
+});
+$('ics-rem').addEventListener('change', ()=>{
+  settings.alarm = parseInt($('ics-rem').value, 10) || 0;
+  saveSettings();
+});
+$('set-appearance').addEventListener('change', ()=>{
+  applyAppearance($('set-appearance').value);
+});
+function applyAppearance(val){
+  if (settings){ settings.appearance = val; saveSettings(); }
+  const root = document.documentElement;
+  if (val === 'light' || val === 'dark') root.setAttribute('data-appearance', val);
+  else root.removeAttribute('data-appearance');
+  const dark = val === 'dark' || (val !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const bg = dark ? '#0E0F13' : '#F2F3F7';
+  const ml = document.getElementById('meta-light'), md = document.getElementById('meta-dark');
+  if (ml) ml.setAttribute('content', bg);
+  if (md) md.setAttribute('content', bg);
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{
+  const val = (settings && settings.appearance) || 'auto';
+  if (val === 'auto') applyAppearance('auto');
+});
+$('btn-dl').addEventListener('click', ()=>{
+  downloadIcs();
+  toast('Plik pobrany — zobacz «Pobrane» w «Plikach»');
+});
+$('btn-home').addEventListener('click', ()=>openSheet('sheet-help'));
+
+// kalendarz: nawigacja
+$('cal-prev').addEventListener('click', ()=>{ view.m--; if (view.m<0){view.m=11; view.y--;} renderCalendar(); });
+$('cal-next').addEventListener('click', ()=>{ view.m++; if (view.m>11){view.m=0; view.y++;} renderCalendar(); });
+$('cal-today-btn').addEventListener('click', ()=>{ startView(); renderCalendar(); });
+
+// ---------- start ----------
+const iconCanvas = document.createElement('canvas');
+iconCanvas.width = 180; iconCanvas.height = 180;
+(function(){
+  const g = iconCanvas.getContext('2d');
+  if (!g) return;
+  g.fillStyle = '#F2F3F7'; g.fillRect(0,0,180,180);
+  const cols = ['#F0A32F','#F0A32F','#3D4EA8','#3D4EA8','#E4E7EC','#E4E7EC','#E4E7EC','#E4E7EC'];
+  const w = 15, gap = 3.75, y = 48, h = 52;
+  cols.forEach((c,i)=>{
+    g.fillStyle = c;
+    const x = 15 + i*(w+gap);
+    if (g.roundRect){ g.beginPath(); g.roundRect(x,y,w,h,7); g.fill(); }
+    else g.fillRect(x,y,w,h);
+  });
+  g.fillStyle = '#171A20';
+  g.font = '800 26px -apple-system, "Helvetica Neue", sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('ZMIANY', 90, 138);
+  let link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = iconCanvas.toDataURL('image/png');
+  document.head.appendChild(link);
+})();
+function applyHash(){
+  const m = location.hash.match(/d1=(\d{4}-\d{2}-\d{2})/);
+  if (!m) return;
+  const p = location.hash.match(/p=([01])/);
+  settings = {
+    base: m[1],
+    pos: p ? parseInt(p[1],10) : 0,
+    alarm: (location.hash.match(/ra=(\d+)/) ? parseInt(location.hash.match(/ra=(\d+)/)[1],10) : 60),
+    appearance: (settings && settings.appearance) ? settings.appearance : 'auto'
+  };
+  saveSettings();
+  setTimeout(()=>toast('Ustawienia zastosowane z linku'), 400);
+}
+
+settings = loadSettings();
+if (location.hash) applyHash();
+if (settings && /^\d{4}-\d{2}-\d{2}$/.test(settings.base||'')){
+  startView();
+  showMain();
+  updateAll();
+} else {
+  settings = null;
+  showSetup();
+}
+applyAppearance(settings ? (settings.appearance || 'auto') : 'auto');
+
+setInterval(updateAll, 30000);
+document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) updateAll(); });
+window.__zmiany = {settings:settings, slotOf:slotOf, currentShift:currentShift,
+  nextShiftFrom:nextShiftFrom, buildStatus:buildStatus, buildIcs:buildIcs, anchorDate:anchorDate,
+  updateAll:updateAll};
+})();
+</script>
+</body>
+</html>

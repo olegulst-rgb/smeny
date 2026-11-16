@@ -17,12 +17,14 @@
   --text:#171A20; --muted:#7A808A; --accent:#0A84FF;
   --day:#F0A32F; --night:#3D4EA8;
   --off:#E4E7EC; --off-txt:#9AA0AB;
+  --danger:#E5484D;
 }
 html[data-appearance="dark"]{
   --bg:#0E0F13; --card:#1A1C22; --line:#2A2D35; --field:#23262D;
   --text:#F2F4F8; --muted:#98A0AC;
   --day:#E8991F; --night:#7A8BE8;
   --off:#2A2D35; --off-txt:#8B919C;
+  --danger:#FF6369;
 }
 @media (prefers-color-scheme: dark){
   html:not([data-appearance="light"]){
@@ -30,6 +32,7 @@ html[data-appearance="dark"]{
     --text:#F2F4F8; --muted:#98A0AC;
     --day:#E8991F; --night:#7A8BE8;
     --off:#2A2D35; --off-txt:#8B919C;
+    --danger:#FF6369;
   }
 }
 *{ box-sizing:border-box; }
@@ -301,7 +304,8 @@ input[type="date"], select{
       <button class="btn" id="btn-home">🏠 Как поставить ярлык</button>
     </div>
 
-    <footer class="foot">график 2–2–4 · цикл 8 дней · всё считается на телефоне, никуда не отправляется</footer>
+    <footer class="foot">график 2–2–4 · цикл 8 дней · всё считается на телефоне, никуда не отправляется ·
+      <a href="pl/" style="color:var(--accent); text-decoration:none">Polski</a></footer>
   </main>
 </div>
 
@@ -716,6 +720,7 @@ function renderUpcoming(now){
   });
 }
 function updateAll(){
+  if (!settings) return;
   const now = new Date();
   renderStatus(now);
   const cur = currentShift(now);
